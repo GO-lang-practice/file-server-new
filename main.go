@@ -2,12 +2,18 @@ package main
 
 import (
 	"example/evolza/database"
+	handlers "example/evolza/handlers"
+	"example/evolza/repository"
+	"example/evolza/routes"
+	services "example/evolza/service"
+	"example/evolza/utils"
+	"log"
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
-	"log"
-	"os"
 )
 
 func main() {
@@ -19,7 +25,19 @@ func main() {
 	// Connect to MongoDB
 	database.Connect()
 
-	//need to initialize handelrs here
+	// Initialize repositories
+	userRepo := repository.NewUserRepository()
+	fileRepo := repository.NewFileRepository()
+
+	// Initialize services
+	fileService := services.NewFileService(fileRepo)
+
+	// Initialize logger
+	appLogger := utils.NewLogger("./logs/app.log")
+
+	// Initialize handlers
+	adminHandler := handlers.NewAdminHandler(userRepo)
+	fileHandler := handlers.NewFileHandler(fileService, appLogger)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -38,7 +56,8 @@ func main() {
 	app.Use(logger.New())
 	app.Use(cors.New())
 
-	//need to set up routes here
+	// Setup routes
+	routes.SetupRoutes(app, adminHandler, fileHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
